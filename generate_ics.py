@@ -203,7 +203,10 @@ def build_index(club, entries, base_url):
         buttons = f'<a class="btn" href="{html.escape(webcal)}">Add to phone</a>' if base_url else ""
         if google:
             buttons += f' <a class="btn" href="{html.escape(google)}">Add to Google</a>'
-        buttons += f' <a class="btn plain" href="{html.escape(filename)}">Download .ics</a>'
+        if not base_url:
+            # Without a published URL there is nothing to subscribe to, so fall
+            # back to the raw file purely so the preview page is usable locally.
+            buttons = f'<a class="btn plain" href="{html.escape(filename)}">{html.escape(filename)}</a>'
         rows.append(f"<tr><td><strong>{html.escape(label)}</strong><br>"
                     f"<span class=count>{count} fixtures</span></td>"
                     f"<td>{buttons}</td></tr>")
@@ -256,7 +259,8 @@ def build_index(club, entries, base_url):
   <p class=tag>{html.escape(club)} Korfball Club — 2026-27 season</p>
 </header>
 <h2>Subscribe to your team</h2>
-<p class=sub>Subscribe once and your calendar updates when the fixtures change.</p>
+<p class=sub>Subscribe once and your calendar updates automatically whenever the
+fixtures change — there is nothing to re-download later.</p>
 {warning}
 <table>{''.join(rows)}</table>
 <p class=note><strong>Draft fixtures.</strong> Based on LKA Fixtures 26-27 Draft v0.01.
