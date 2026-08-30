@@ -165,6 +165,9 @@ def build_event(fixture, club, stamp):
         description.append(query)
         lines.append("STATUS:TENTATIVE")
 
+    point = venue_book.coords(venue)
+    if point:
+        lines.append(f"GEO:{point[0]};{point[1]}")
     lines += [f"LOCATION:{esc(venue_book.full_location(venue))}",
               f"DESCRIPTION:{esc(chr(10).join(description))}",
               "END:VEVENT"]

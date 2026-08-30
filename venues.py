@@ -35,11 +35,14 @@ VENUES = {
     # Venues Bromley visit
     # ------------------------------------------------------------------
     "Sacred Heart": {
-        "full_name": None,
-        "address": None,
+        "full_name": "Sacred Heart Catholic Secondary School",
+        "address": "Camberwell, London",     # street + postcode still wanted
         "postcode": None,
+        "lat": 51.47541029,
+        "lng": -0.09727099,
         "host": "Supernova",
-        "notes": "Busiest venue in the league (49 fixtures).",
+        "notes": "Busiest venue in the league (49 fixtures). Name and "
+                 "coordinates confirmed from the club's Heja calendar feed.",
     },
     "Royal Russell": {
         "full_name": "Royal Russell School",           # CONFIRM
@@ -57,12 +60,15 @@ VENUES = {
                  "until the TBC is resolved.",
     },
     "Trinity": {
-        "full_name": None,
-        "address": None,
+        "full_name": "Trinity School",
+        "address": "Shirley Park, Croydon",  # street + postcode still wanted
         "postcode": None,
+        "lat": 51.3752161,
+        "lng": -0.0600856,
         "host": "Bec, Trojans",
         "notes": "Shared by two clubs - confirm it is one hall, not two "
-                 "venues with the same name.",
+                 "venues with the same name. Name and coordinates confirmed "
+                 "from the club's Heja calendar feed.",
     },
     "Epsom": {
         "full_name": None,
@@ -138,12 +144,27 @@ def full_location(venue):
     return ", ".join(p for p in parts if p)
 
 
+def coords(venue):
+    """(lat, lng) when known, else None. Coordinates beat address text."""
+    entry = lookup(venue)
+    if entry and entry.get("lat") is not None and entry.get("lng") is not None:
+        return entry["lat"], entry["lng"]
+    return None
+
+
 def maps_url(venue):
-    """A Google Maps search URL, or None when the address is unconfirmed."""
+    """A Google Maps URL, or None when the venue is unconfirmed.
+
+    Prefers coordinates: they are unambiguous, whereas an address string is
+    re-geocoded by Maps and can drift to a similarly named place.
+    """
     entry = lookup(venue)
     if not entry or not entry.get("address"):
         return None
     from urllib.parse import quote_plus
+    pt = coords(venue)
+    if pt:
+        return f"https://www.google.com/maps/search/?api=1&query={pt[0]},{pt[1]}"
     return "https://www.google.com/maps/search/?api=1&query=" + quote_plus(full_location(venue))
 
 
@@ -159,7 +180,7 @@ def search_url(venue, area="London"):
     from urllib.parse import quote_plus
     entry = lookup(venue)
     if entry and entry.get("address"):
-        query = full_location(venue)
+        return maps_url(venue)
     else:
         # Bias an unconfirmed name towards the right region, and towards a
         # sports venue rather than a place of the same name.
