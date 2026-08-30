@@ -30,6 +30,8 @@ from datetime import datetime, timedelta
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
+import venues as venue_book
+
 try:
     import openpyxl
 except ImportError:
@@ -163,7 +165,7 @@ def build_event(fixture, club, stamp):
         description.append(query)
         lines.append("STATUS:TENTATIVE")
 
-    lines += [f"LOCATION:{esc(venue)}",
+    lines += [f"LOCATION:{esc(venue_book.full_location(venue))}",
               f"DESCRIPTION:{esc(chr(10).join(description))}",
               "END:VEVENT"]
     return lines
@@ -282,13 +284,16 @@ def build_team_page(club, label, fixtures, filename, base_url, team=None):
             time = "TBC"
 
         venue = str(f["venue"] or "TBC")
+        maps = venue_book.maps_url(venue)
+        venue_html = (f'<a href="{html.escape(maps)}">{html.escape(venue)}</a>'
+                      if maps else html.escape(venue))
         query = QUERIES.get((f"{f['date']:%Y-%m-%d}", str(f["home_team"]), str(f["away_team"])))
         note = f'<span class=tent>Under query — {html.escape(query.split(": ", 1)[-1])}</span>' if query else ""
 
         rows.append(
             f'<tr><td class=when>{f["date"]:%a %d %b}<small>{time}</small></td>'
             f'<td><span class=who>{badge}{html.escape(who)}</span>'
-            f'<div class=where>{html.escape(venue)} · {html.escape(str(f["league"]))}</div>'
+            f'<div class=where>{venue_html} · {html.escape(str(f["league"]))}</div>'
             f'{note}</td></tr>')
 
     return f"""<!DOCTYPE html>
@@ -410,6 +415,13 @@ def main():
     print(f"Wrote {len(entries)} calendars + pages to {outdir}/")
     for filename, label, count, page in entries:
         print(f"  {filename:<16} {page:<17} {label:<24} {count:>2} fixtures")
+    missing = venue_book.unresolved(f["venue"] for f in fixtures)
+    if missing:
+        print(f"\n{len(missing)} venue(s) have no confirmed address, so publish as a "
+              f"bare name with no map link. Add them in venues.py:")
+        for name in missing:
+            print(f"  - {name}")
+
     if not args.base_url:
         print("\nRe-run with --base-url once hosted, to generate working subscribe links.")
 
