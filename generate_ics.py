@@ -193,9 +193,130 @@ def slug(team):
     return re.sub(r"[^a-z0-9]+", "-", str(team).lower()).strip("-")
 
 
+STYLE = """
+ /* Design tokens taken from bromleykorfball.com */
+ :root{--orange:#F78F1E;--ink:#0F1518;--muted:#5d666a;--line:#e4e7e8;--wash:#fdf6ee}
+ *{box-sizing:border-box}
+ body{font:16px/1.55 Figtree,system-ui,-apple-system,sans-serif;margin:0;
+   padding:1.5rem;max-width:44rem;color:var(--ink)}
+ header{border-bottom:4px solid var(--orange);padding-bottom:.9rem;margin-bottom:1.35rem}
+ .brand{font-size:1.7rem;font-weight:800;letter-spacing:-.025em;margin:0;
+   text-transform:uppercase}
+ .brand a{color:inherit;text-decoration:none;font-weight:800}
+ .brand span{color:var(--orange)}
+ .tag{color:var(--muted);margin:.2rem 0 0;font-size:.95rem;font-weight:600}
+ h2{font-size:1.05rem;font-weight:800;margin:0 0 .2rem}
+ p.sub{color:var(--muted);margin:0 0 1.25rem;font-size:.95rem}
+ a{color:var(--orange);font-weight:700}
+ a:hover{color:var(--ink)}
+ table{border-collapse:collapse;width:100%}
+ td{padding:.8rem .4rem;border-top:1px solid var(--line);vertical-align:middle}
+ .count{color:var(--muted);font-size:.85rem;font-weight:400}
+ .btn{display:inline-block;padding:.44rem .8rem;margin:.15rem .15rem .15rem 0;
+   background:var(--orange);color:#fff;text-decoration:none;border-radius:.3rem;
+   font-size:.85rem;font-weight:700}
+ .btn:hover{background:var(--ink);color:#fff}
+ .btn.plain{background:#eef0f1;color:var(--ink)}
+ .btn.plain:hover{background:var(--ink);color:#fff}
+ .note,.warn{background:var(--wash);padding:.8rem 1rem;border-radius:.4rem;
+   font-size:.9rem;border-left:4px solid var(--orange)}
+ .warn{background:#fff4e5;border-left-color:#cf2e2e}
+ footer{margin-top:2rem;padding-top:.9rem;border-top:1px solid var(--line);
+   color:var(--muted);font-size:.82rem}
+ /* fixture list */
+ .fx{margin-top:.5rem}
+ .fx td{padding:.7rem .4rem}
+ .fx .when{white-space:nowrap;font-weight:700;width:6.4rem}
+ .fx .when small{display:block;font-weight:400;color:var(--muted)}
+ .fx .who{font-weight:600}
+ .fx .where{color:var(--muted);font-size:.87rem;font-weight:400}
+ .ha{display:inline-block;min-width:1.15rem;padding:.05rem .32rem;margin-right:.4rem;
+   border-radius:.2rem;font-size:.72rem;font-weight:800;vertical-align:.08em}
+ .ha.h{background:var(--orange);color:#fff}
+ .ha.a{background:#eef0f1;color:var(--muted)}
+ .tent{color:#b3560c;font-size:.82rem;font-weight:600;display:block;margin-top:.2rem}
+ .mth{font-size:.78rem;font-weight:800;text-transform:uppercase;letter-spacing:.06em;
+   color:var(--muted);padding-top:1.1rem}
+"""
+
+FONT_LINKS = """<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;600;800&display=swap"
+      rel="stylesheet">"""
+
+
+def build_team_page(club, label, fixtures, filename, base_url, team=None):
+    """Human-readable fixture list for one calendar.
+
+    `team` is the single team this page covers, or None for the club-wide page.
+    Home/away must be judged against the team, not the club: in a Bromley 4 v
+    Bromley 5 derby both sides share a club, so a club comparison calls it a
+    home game for both.
+    """
+    url = f"{base_url.rstrip('/')}/{filename}" if base_url else filename
+    webcal = re.sub(r"^https?://", "webcal://", url) if base_url else ""
+    subscribe = ""
+    if base_url:
+        subscribe = (f'<a class="btn" href="{html.escape(webcal)}">Add to phone</a> '
+                     f'<a class="btn" href="https://calendar.google.com/calendar/r?cid='
+                     f'{html.escape(webcal)}">Add to Google</a>')
+
+    rows, month = [], None
+    for f in fixtures:
+        if f["date"].strftime("%B %Y") != month:
+            month = f["date"].strftime("%B %Y")
+            rows.append(f'<tr><td class=mth colspan=2>{html.escape(month)}</td></tr>')
+
+        if team:
+            is_home = str(f["home_team"]) == str(team)
+            who = str(f["away_team"] if is_home else f["home_team"])
+        else:
+            is_home = str(f["home_club"]) == club
+            who = f'{f["home_team"]} v {f["away_team"]}'
+        badge = ('<span class="ha h">H</span>' if is_home
+                 else '<span class="ha a">A</span>')
+
+        if f["throw_off"]:
+            time = f"{f['throw_off']:%H:%M}"
+        else:
+            time = "TBC"
+
+        venue = str(f["venue"] or "TBC")
+        query = QUERIES.get((f"{f['date']:%Y-%m-%d}", str(f["home_team"]), str(f["away_team"])))
+        note = f'<span class=tent>Under query — {html.escape(query.split(": ", 1)[-1])}</span>' if query else ""
+
+        rows.append(
+            f'<tr><td class=when>{f["date"]:%a %d %b}<small>{time}</small></td>'
+            f'<td><span class=who>{badge}{html.escape(who)}</span>'
+            f'<div class=where>{html.escape(venue)} · {html.escape(str(f["league"]))}</div>'
+            f'{note}</td></tr>')
+
+    return f"""<!DOCTYPE html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>{html.escape(label)} fixtures 2026-27 — KorfKal</title>
+{FONT_LINKS}
+<style>{STYLE}</style>
+<header>
+  <p class=brand><a href="index.html">Korf<span>Kal</span></a></p>
+  <p class=tag>{html.escape(label)} — 2026-27 fixtures</p>
+</header>
+<p class=sub>{len(fixtures)} fixtures. <a href="index.html">All teams</a></p>
+{subscribe}
+<table class=fx>{''.join(rows)}</table>
+<p class=note><strong>Draft fixtures.</strong> Times and venues may change.
+Fixtures marked <em>under query</em> are being checked with the LKA.
+<strong>TBC</strong> means the throw-off time has not been confirmed yet.</p>
+<footer>Generated by KorfKal ·
+<a href="https://bromleykorfball.com/">bromleykorfball.com</a></footer>
+</html>
+"""
+
+
 def build_index(club, entries, base_url):
     rows = []
-    for filename, label, count in entries:
+    for filename, label, count, page in entries:
         url = f"{base_url.rstrip('/')}/{filename}" if base_url else filename
         webcal = re.sub(r"^https?://", "webcal://", url) if base_url else ""
         google = (f"https://calendar.google.com/calendar/r?cid={webcal}"
@@ -207,6 +328,7 @@ def build_index(club, entries, base_url):
             # Without a published URL there is nothing to subscribe to, so fall
             # back to the raw file purely so the preview page is usable locally.
             buttons = f'<a class="btn plain" href="{html.escape(filename)}">{html.escape(filename)}</a>'
+        buttons += f' <a class="btn plain" href="{html.escape(page)}">View fixtures</a>'
         rows.append(f"<tr><td><strong>{html.escape(label)}</strong><br>"
                     f"<span class=count>{count} fixtures</span></td>"
                     f"<td>{buttons}</td></tr>")
@@ -220,40 +342,8 @@ def build_index(club, entries, base_url):
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>KorfKal — {html.escape(club)} fixtures 2026-27</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;600;800&display=swap"
-      rel="stylesheet">
-<style>
- /* Design tokens taken from bromleykorfball.com */
- :root{{--orange:#F78F1E;--ink:#0F1518;--muted:#5d666a;--line:#e4e7e8;--wash:#fdf6ee}}
- *{{box-sizing:border-box}}
- body{{font:16px/1.55 Figtree,system-ui,-apple-system,sans-serif;margin:0;
-   padding:1.5rem;max-width:44rem;color:var(--ink)}}
- header{{border-bottom:4px solid var(--orange);padding-bottom:.9rem;margin-bottom:1.35rem}}
- .brand{{font-size:1.7rem;font-weight:800;letter-spacing:-.025em;margin:0;
-   text-transform:uppercase}}
- .brand span{{color:var(--orange)}}
- .tag{{color:var(--muted);margin:.2rem 0 0;font-size:.95rem;font-weight:600}}
- h2{{font-size:1.05rem;font-weight:800;margin:0 0 .2rem}}
- p.sub{{color:var(--muted);margin:0 0 1.25rem;font-size:.95rem}}
- a{{color:var(--orange);font-weight:700}}
- a:hover{{color:var(--ink)}}
- table{{border-collapse:collapse;width:100%}}
- td{{padding:.8rem .4rem;border-top:1px solid var(--line);vertical-align:middle}}
- .count{{color:var(--muted);font-size:.85rem;font-weight:400}}
- .btn{{display:inline-block;padding:.44rem .8rem;margin:.15rem .15rem .15rem 0;
-   background:var(--orange);color:#fff;text-decoration:none;border-radius:.3rem;
-   font-size:.85rem;font-weight:700}}
- .btn:hover{{background:var(--ink);color:#fff}}
- .btn.plain{{background:#eef0f1;color:var(--ink)}}
- .btn.plain:hover{{background:var(--ink);color:#fff}}
- .note,.warn{{background:var(--wash);padding:.8rem 1rem;border-radius:.4rem;
-   font-size:.9rem;border-left:4px solid var(--orange)}}
- .warn{{background:#fff4e5;border-left-color:#cf2e2e}}
- footer{{margin-top:2rem;padding-top:.9rem;border-top:1px solid var(--line);
-   color:var(--muted);font-size:.82rem}}
-</style>
+{FONT_LINKS}
+<style>{STYLE}</style>
 <header>
   <p class=brand>Korf<span>Kal</span></p>
   <p class=tag>{html.escape(club)} Korfball Club — 2026-27 season</p>
@@ -294,31 +384,32 @@ def main():
     outdir.mkdir(parents=True, exist_ok=True)
     club_lower = args.club.lower()
 
-    entries = []
-    filename = f"{slug(args.club)}.ics"
-    (outdir / filename).write_text(
-        build_calendar(fixtures, args.club, f"{args.club} Korfball — all teams"),
-        encoding="utf-8")
-    entries.append((filename, f"{args.club} — all teams", len(fixtures)))
-
     per_team = defaultdict(list)
     for fixture in fixtures:
         for team in teams_of(fixture, args.club):
             per_team[team].append(fixture)
 
-    for team in sorted(per_team):
-        filename = f"{slug(team)}.ics"
+    calendars = [(slug(args.club), f"{args.club} — all teams",
+                  f"{args.club} Korfball — all teams", fixtures, None)]
+    calendars += [(slug(team), str(team), f"{team} Korfball", per_team[team], team)
+                  for team in sorted(per_team)]
+
+    entries = []
+    for stem, label, calname, items, team in calendars:
+        filename, page = f"{stem}.ics", f"{stem}.html"
         (outdir / filename).write_text(
-            build_calendar(per_team[team], args.club, f"{team} Korfball"),
+            build_calendar(items, args.club, calname), encoding="utf-8")
+        (outdir / page).write_text(
+            build_team_page(args.club, label, items, filename, args.base_url, team),
             encoding="utf-8")
-        entries.append((filename, str(team), len(per_team[team])))
+        entries.append((filename, label, len(items), page))
 
     (outdir / "index.html").write_text(
         build_index(args.club, entries, args.base_url), encoding="utf-8")
 
-    print(f"Wrote {len(entries)} calendars to {outdir}/")
-    for filename, label, count in entries:
-        print(f"  {filename:<16} {label:<24} {count:>2} fixtures")
+    print(f"Wrote {len(entries)} calendars + pages to {outdir}/")
+    for filename, label, count, page in entries:
+        print(f"  {filename:<16} {page:<17} {label:<24} {count:>2} fixtures")
     if not args.base_url:
         print("\nRe-run with --base-url once hosted, to generate working subscribe links.")
 
