@@ -147,6 +147,33 @@ def maps_url(venue):
     return "https://www.google.com/maps/search/?api=1&query=" + quote_plus(full_location(venue))
 
 
+def search_url(venue, area="London"):
+    """A Google Maps *search* URL, usable even when the address is unconfirmed.
+
+    Safe on a web page in a way a bare address is not in a calendar file: the
+    person sees candidate results and judges, rather than being routed silently
+    to a wrong place. Uses the confirmed address when there is one.
+    """
+    if not venue or str(venue).startswith("Away"):
+        return None
+    from urllib.parse import quote_plus
+    entry = lookup(venue)
+    if entry and entry.get("address"):
+        query = full_location(venue)
+    else:
+        # Bias an unconfirmed name towards the right region, and towards a
+        # sports venue rather than a place of the same name.
+        name = (entry or {}).get("full_name") or str(venue)
+        query = f"{name} sports hall {area}"
+    return "https://www.google.com/maps/search/?api=1&query=" + quote_plus(query)
+
+
+def is_confirmed(venue):
+    """True when we hold a real address, not just a searchable name."""
+    entry = lookup(venue)
+    return bool(entry and entry.get("address"))
+
+
 def unresolved(venues_seen):
     """Venue names in use that have no confirmed address, for run-end reporting."""
     return sorted({str(v) for v in venues_seen

@@ -236,6 +236,8 @@ STYLE = """
    border-radius:.2rem;font-size:.72rem;font-weight:800;vertical-align:.08em}
  .ha.h{background:var(--orange);color:#fff}
  .ha.a{background:#eef0f1;color:var(--muted)}
+ .fx .where a{font-weight:600}
+ .fx .where a.unsure{border-bottom:1px dotted currentColor;text-decoration:none}
  .tent{color:#b3560c;font-size:.82rem;font-weight:600;display:block;margin-top:.2rem}
  .mth{font-size:.78rem;font-weight:800;text-transform:uppercase;letter-spacing:.06em;
    color:var(--muted);padding-top:1.1rem}
@@ -284,9 +286,15 @@ def build_team_page(club, label, fixtures, filename, base_url, team=None):
             time = "TBC"
 
         venue = str(f["venue"] or "TBC")
-        maps = venue_book.maps_url(venue)
-        venue_html = (f'<a href="{html.escape(maps)}">{html.escape(venue)}</a>'
-                      if maps else html.escape(venue))
+        maps = venue_book.search_url(venue)
+        if maps:
+            # Unconfirmed venues link to a Maps search, not a pinned address:
+            # the person sees candidates and judges. Marked so it is honest.
+            hint = ("" if venue_book.is_confirmed(venue)
+                    else ' class=unsure title="Address not confirmed - opens a map search"')
+            venue_html = f'<a href="{html.escape(maps)}"{hint}>{html.escape(venue)}</a>'
+        else:
+            venue_html = html.escape(venue)
         query = QUERIES.get((f"{f['date']:%Y-%m-%d}", str(f["home_team"]), str(f["away_team"])))
         note = f'<span class=tent>Under query — {html.escape(query.split(": ", 1)[-1])}</span>' if query else ""
 
