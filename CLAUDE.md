@@ -56,6 +56,40 @@ training, trials and socials stay off the public site. Team matching is exact:
 a loose prefix test let historical titles like "Bromley 3 friendly" and
 "Bromley1" become their own bogus per-team calendars.
 
+## Do not import KorfKal descriptions into Heja
+
+KorfKal writes a block into each event's `.ics` description:
+
+```
+League: LKA 2
+Matchweek: 1
+Away
+Throw-off: 13:10
+Arrive by: 12:50
+Hall booked: 13:20-17:55
+```
+
+That is for **calendar subscribers**, who have no other way to see the league,
+the arrive-by time or the hall window. It must not end up in Heja.
+
+Heja already shows all of it as structured fields — start time, meet time,
+home/away, opponent, location — and renders them itself. Importing the text
+copies it into Heja's free-text "Additional info", where it is duplicated on
+arrival and then **frozen**: it does not move when the fixture is retimed or
+rescheduled. 62 fixtures carried a block from an August import that by
+September contradicted the event it sat on, telling players a throw-off time
+an hour out from the one directly above it.
+
+So: `heja import` / `bulk` from a KorfKal file should not carry the
+description. Anything genuinely Heja's — "£5 per player, card readers on
+site" — lives in that field and must be preserved; filter on the block's
+`League:` opening rather than clearing wholesale.
+
+Same trap, different field: `heja update --start` used to leave the end and
+meet times behind, because both are stored as absolute timestamps. Fixed in
+heja-cli f09740d, which shifts them with the start unless `--absolute-times`
+is passed. Anything that mirrors a time into a second place will drift.
+
 ## Domain rules
 
 These came from the club and are **not** stated anywhere in the spreadsheet.
