@@ -114,15 +114,27 @@ The header is a Figtree wordmark instead.
 
 ## Draft status
 
-Built from **v0.01**. Seven fixtures are marked `STATUS:TENTATIVE` with an
-explanatory note, listed in `QUERIES` in `generate_ics.py`. When a new draft
-lands, update that dict — stale queries are worse than none.
+Built from **LKA draft v0.03** (via Heja). Nine fixtures carry
+`STATUS:TENTATIVE` with a note, listed in `QUERIES` in `generate_ics.py`. When
+a new draft lands, update that dict — stale queries are worse than none.
 
-Outstanding issues raised with the LKA (detail kept outside this repo):
+Outstanding with the LKA (detail kept outside this repo):
 
-- Bromley 1 is missing two National League fixtures; eight are missing across
-  the four London NL clubs, plus one duplicated fixture.
-- Three Bromley fixtures fall on dates the club declared unavailable, including
-  14 Feb 2027 at home.
-- 7 Feb 2027 cannot be played as drawn — four games do not fit the booking and
-  the last two overlap.
+- **Seven fixtures fall on dates Bromley declared unavailable** (1 Nov, 24 Jan,
+  14 Feb ×2, 21 Feb, 4 Apr, 11 Apr). All involve the 1st or 2nd team; v0.03
+  keeps 3s/4s/5s clear on every one, so the LKA appears to have read the
+  "especially for 3s and 4s" caveat literally. The one to push hardest is
+  **24 Jan**: a home fixture, the only game that day, on a declared no-go date.
+- **Kingfisher v Trojans 1 is scheduled twice**, both away.
+- Two National League warm-ups fall below the 30-minute minimum: 8 Nov at
+  Trojans (17 min) and 10 Jan at Bec (27 min).
+- Bromley hosts LKA 3 play-offs at Langley Park on **14 March** — a hall
+  booking not in the club's own fixture list.
+
+Resolved since v0.01: the 7 February court clash, the "Highbury (TBC)" venue
+(now Excelsior), and most booking overruns.
+
+**Not a defect:** Bromley 1 appears to be missing two EKA fixtures (home v
+Bristol Thunder, away at Nomads 1). They exist — as pre-season games on 20 and
+27 September, before the LKA season opens. The league calendar simply does not
+carry them. Do not raise these.
