@@ -25,13 +25,12 @@ VENUES = {
     # ------------------------------------------------------------------
     "Langley Park": {
         "full_name": "Langley Park School for Boys",
-        "address": "Beckenham",          # street + postcode still wanted
-        "postcode": None,
+        "address": "South Eden Park Road, Beckenham",
+        "postcode": "BR3 3BP",
         "lat": 51.3889901,
         "lng": -0.0190759,
         "host": "Bromley",
-        "notes": "Bromley home venue. Name and coordinates confirmed from the "
-                 "club's Heja calendar feed. Hall opens 12:50 in draft v0.03.",
+        "notes": "Bromley home venue. Address and coordinates from the club's Heja history (304 uses). Hall opens 12:50 in draft v0.03.",
     },
 
     # ------------------------------------------------------------------
@@ -39,27 +38,26 @@ VENUES = {
     # ------------------------------------------------------------------
     "Sacred Heart": {
         "full_name": "Sacred Heart Catholic Secondary School",
-        "address": "Camberwell, London",     # street + postcode still wanted
-        "postcode": None,
+        "address": "Camberwell New Road, London",
+        "postcode": "SE5 9JN",
         "lat": 51.47541029,
         "lng": -0.09727099,
         "host": "Supernova",
-        "notes": "Busiest venue in the league (49 fixtures). Name and "
-                 "coordinates confirmed from the club's Heja calendar feed.",
+        "notes": "Busiest venue in the league. Address and coordinates from Heja.",
     },
     "Royal Russell": {
-        "full_name": "Royal Russell School",           # CONFIRM
-        "address": None,
-        "postcode": None,
+        "full_name": "Royal Russell School",
+        "address": "Coombe Lane, Croydon",
+        "postcode": "CR9 5BX",
         "host": "Croydon",
-        "notes": "",
+        "notes": "Address confirmed from the club's Heja location history (used 26 times).",
     },
     "Excelsior": {
-        "full_name": None,
-        "address": None,
-        "postcode": None,
+        "full_name": "The Excelsior Academy",
+        "address": "Shacklewell Lane, London",
+        "postcode": "E8 2HE",
         "host": "Highbury",
-        "notes": "Resolves the 'Highbury (TBC)' placeholder used up to v0.01.",
+        "notes": "Resolves the 'Highbury (TBC)' placeholder used up to v0.01. Address confirmed from the club's Heja location history (used 6 times).",
     },
     "Highbury (TBC)": {
         "full_name": None,
@@ -71,21 +69,19 @@ VENUES = {
     },
     "Trinity": {
         "full_name": "Trinity School",
-        "address": "Shirley Park, Croydon",  # street + postcode still wanted
-        "postcode": None,
+        "address": "Shirley Park, Croydon",
+        "postcode": "CR9 7AT",
         "lat": 51.3752161,
         "lng": -0.0600856,
         "host": "Bec, Trojans",
-        "notes": "Shared by two clubs - confirm it is one hall, not two "
-                 "venues with the same name. Name and coordinates confirmed "
-                 "from the club's Heja calendar feed.",
+        "notes": "Shared by Bec and Trojans. Address and coordinates from Heja; a minority of records give Addiscombe Rd CR0 5EB, so confirm if a player reports trouble finding it.",
     },
     "Epsom": {
-        "full_name": None,
-        "address": None,
-        "postcode": None,
+        "full_name": "Epsom College",
+        "address": "Epsom, Surrey",
+        "postcode": "KT17 4JQ",
         "host": "Nomads",
-        "notes": "",
+        "notes": "Address confirmed from the club's Heja location history (used 19 times).",
     },
     "St Pauls Way": {
         "full_name": None,
@@ -95,36 +91,36 @@ VENUES = {
         "notes": "",
     },
     "Harris Invictus": {
-        "full_name": None,
-        "address": None,
-        "postcode": None,
+        "full_name": "Harris Invictus Academy Croydon",
+        "address": "88 London Road, Croydon",
+        "postcode": "CR0 2TB",
         "host": "Bec",
-        "notes": "",
+        "notes": "Address confirmed from the club's Heja location history (used 5 times).",
     },
     "Queen Elizabeth Girls' School": {
-        "full_name": None,
-        "address": None,
-        "postcode": None,
+        "full_name": "Queen Elizabeth's Girls' School",
+        "address": "High Street, Barnet",
+        "postcode": "EN5 5RR",
         "host": "Harrow",
-        "notes": "",
+        "notes": "Address confirmed from the club's Heja location history (used 1 times). Single use - lower confidence.",
     },
 
     # ------------------------------------------------------------------
     # No Bromley fixtures - only needed if other clubs are published
     # ------------------------------------------------------------------
     "Ernest Bevin": {
-        "full_name": None,
-        "address": None,
-        "postcode": None,
+        "full_name": "Ernest Bevin Academy",
+        "address": "Beechcroft Road, Wandsworth, London",
+        "postcode": "SW17 7DF",
         "host": "Bec",
-        "notes": "No Bromley fixtures.",
+        "notes": "No Bromley fixtures. Address confirmed from the club's Heja location history (used 18 times).",
     },
     "Glyn School": {
-        "full_name": None,
-        "address": None,
-        "postcode": None,
+        "full_name": "Glyn School",
+        "address": "The Kingsway, Epsom, Surrey",
+        "postcode": "KT17 1NB",
         "host": "Nomads",
-        "notes": "No Bromley fixtures.",
+        "notes": "Address confirmed from the club's Heja location history (used 1 times). Single use - lower confidence.",
     },
 }
 
