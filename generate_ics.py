@@ -128,6 +128,10 @@ def load_fixtures(path, club):
 
 
 FIXTURE_TITLE = re.compile(r"^(?P<home>.+?)\s+v(?:s\.?)?\s+(?P<away>.+?)$", re.I)
+# Heja has no "time unknown" state, so a fixture awaiting a throw-off time is
+# parked at a placeholder hour and flagged in the title. Publishing that hour
+# would put a confident, invented time in front of players.
+TBC_TITLE = re.compile(r"^\s*(time\s*tbc|tbc|provisional)\s*[-\u2013:]\s*", re.I)
 NON_FIXTURE = re.compile(r"\((friendly|practice|training|social)\)\s*$", re.I)
 
 
@@ -179,6 +183,8 @@ def load_from_heja(path, club):
         m = re.search(r"\(([^)]*)\)\s*$", title)
         if m:
             league = m.group(1)
+        time_unknown = bool(TBC_TITLE.search(title))
+        title = TBC_TITLE.sub("", title).strip()
         bare = re.sub(r"\s*\([^)]*\)\s*$", "", title).strip()
         if NON_FIXTURE.search(title):
             league = league or "Friendly"
@@ -190,8 +196,10 @@ def load_from_heja(path, club):
            not re.match(rf"^{re.escape(club)}\s+\d+$", away):
             continue
 
-        if e.get("_allday"):
-            date = datetime.strptime(start[:8], "%Y%m%d")
+        if e.get("_allday") or time_unknown:
+            date = datetime.strptime(start[:8], "%Y%m%d") if e.get("_allday") else \
+                datetime.strptime(start, "%Y%m%dT%H%M%SZ").replace(tzinfo=UTC).astimezone(LOCAL).replace(tzinfo=None)
+            date = datetime(date.year, date.month, date.day)
             throw = None
         else:
             utc = datetime.strptime(start, "%Y%m%dT%H%M%SZ").replace(tzinfo=UTC)
