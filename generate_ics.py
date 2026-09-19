@@ -2,7 +2,7 @@
 """KorfKal - generate iCalendar (.ics) fixture feeds for a korfball club.
 
 Usage:
-    python3 generate_ics.py "LKA Fixtures 26-27 Draft v0.01.xlsx" [--club Bromley] [--outdir docs]
+    python3 generate_ics.py "LKA Fixtures 26-27 vX.XX.xlsx" [--club Bromley] [--outdir docs]
 
 Produces, in --outdir:
     bromley.ics        every club fixture
@@ -54,20 +54,33 @@ COL = dict(matchweek=3, date=4, league=5, home_club=7, home_team=8,
 
 # Fixtures under query, keyed by (date ISO, home team, away team).
 QUERIES = {
+    # Dates Bromley declared unavailable in Club Avail. The note reads
+    # "especially for 3s and 4s due to school holidays", and v0.03 keeps
+    # 3s/4s/5s clear on every one - so these are 1st/2nd team fixtures the
+    # LKA appears to have judged acceptable. Still worth querying.
+    ("2026-11-01", "Croydon 1", "Bromley 2"):
+        "QUERY: Bromley declared 1 November unavailable (Club Avail).",
+    ("2027-01-24", "Bromley 2", "Nomads 2"):
+        "QUERY: Bromley declared 24 January unavailable, yet this is a home "
+        "fixture needing a hall booking - and it is the only game that day.",
     ("2027-02-14", "Bromley 1", "Birmingham City"):
-        "QUERY: Bromley declared 14 February unavailable (Club Avail). Under review with the LKA.",
+        "QUERY: Bromley declared 14 February unavailable (Club Avail).",
+    ("2027-02-14", "Bromley 2", "Croydon 1"):
+        "QUERY: Bromley declared 14 February unavailable (Club Avail).",
     ("2027-02-21", "Cambridge Tigers", "Bromley 1"):
-        "QUERY: Bromley declared 21 February unavailable (Club Avail). Under review with the LKA.",
+        "QUERY: Bromley declared 21 February unavailable (Club Avail).",
+    ("2027-04-04", "Highbury 1", "Bromley 2"):
+        "QUERY: Bromley declared 4 April unavailable (Club Avail).",
     ("2027-04-11", "Kingfisher", "Bromley 1"):
-        "QUERY: Bromley declared 11 April unavailable (Club Avail). Under review with the LKA.",
-    ("2027-02-07", "Bromley 5", "Croydon 4"):
-        "QUERY: throw-off clashes with the previous game on the same court. Time likely to move.",
-    ("2027-02-07", "Bromley 4", "Supernova 5"):
-        "QUERY: very tight turnaround; time may move if 7 Feb is rescheduled.",
+        "QUERY: Bromley declared 11 April unavailable (Club Avail).",
+
+    # National League warm-up below the 30-minute minimum.
     ("2026-11-08", "Trojans 1", "Bromley 1"):
-        "QUERY: only 17 minutes of free court before throw-off, below the 30-minute National League minimum.",
+        "QUERY: only 17 minutes of free court before throw-off, below the "
+        "30-minute National League minimum.",
     ("2027-01-10", "Bec 1", "Bromley 1"):
-        "QUERY: only 27 minutes of free court before throw-off, below the 30-minute National League minimum.",
+        "QUERY: only 27 minutes of free court before throw-off, below the "
+        "30-minute National League minimum.",
 }
 
 
@@ -79,14 +92,36 @@ def arrival_for(league):
     return NL_ARRIVAL if league == NL_LEAGUE else LKA_ARRIVAL
 
 
+def calendar_rows(workbook):
+    """Rows of the Calendar tab below its header.
+
+    The header is located by finding the 'Date' cell rather than assumed to be
+    row 1: v0.03 of the workbook added two title rows above it, and a future
+    draft may add more.
+    """
+    rows = list(workbook["Calendar"].iter_rows(values_only=True))
+    for i, row in enumerate(rows):
+        if row[COL["date"]] == "Date":
+            return rows[i + 1:]
+    return rows[1:]
+
+
 def load_fixtures(path, club):
     workbook = openpyxl.load_workbook(path, data_only=True)
     fixtures = []
-    for row in workbook["Calendar"].iter_rows(min_row=2, values_only=True):
+    for row in calendar_rows(workbook):
         if not (row[COL["date"]] and row[COL["home_team"]] and row[COL["away_team"]]):
+            continue
+        if not hasattr(row[COL["date"]], "strftime"):    # stray text in the date column
             continue
         fixture = {k: row[i] for k, i in COL.items()}
         if club not in (str(fixture["home_club"]), str(fixture["away_club"])):
+            continue
+        # The club also hosts other divisions' play-offs, which carry its
+        # home_club but no team of its own and only placeholder names like
+        # "LKA3S 3". Those are a hall-booking obligation, not a fixture any
+        # subscriber can act on, so keep them out of the calendars.
+        if not teams_of(fixture, club):
             continue
         fixtures.append(fixture)
     return sorted(fixtures, key=lambda f: (f["date"], f["throw_off"] or datetime.min.time()))

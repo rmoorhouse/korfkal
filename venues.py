@@ -51,13 +51,20 @@ VENUES = {
         "host": "Croydon",
         "notes": "",
     },
+    "Excelsior": {
+        "full_name": None,
+        "address": None,
+        "postcode": None,
+        "host": "Highbury",
+        "notes": "Resolves the 'Highbury (TBC)' placeholder used up to v0.01.",
+    },
     "Highbury (TBC)": {
         "full_name": None,
         "address": None,
         "postcode": None,
         "host": "Highbury",
-        "notes": "Venue not confirmed in the draft - do NOT add an address "
-                 "until the TBC is resolved.",
+        "notes": "Superseded by Excelsior in v0.03. Kept so older drafts "
+                 "still resolve; safe to delete once v0.01 is no longer used.",
     },
     "Trinity": {
         "full_name": "Trinity School",
