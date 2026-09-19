@@ -56,6 +56,47 @@ training, trials and socials stay off the public site. Team matching is exact:
 a loose prefix test let historical titles like "Bromley 3 friendly" and
 "Bromley1" become their own bogus per-team calendars.
 
+## LeagueRepublic — the authoritative source for National League
+
+England Korfball runs its fixtures on LeagueRepublic. Public JSON, no auth:
+
+```
+https://api.leaguerepublic.com/json/getFixturesForFixtureGroup/1/{group}.json
+https://api.leaguerepublic.com/json/getStandingsForFixtureGroup/1/{group}.json
+https://api.leaguerepublic.com/json/getFullFixtureDetails/{fixtureID}.json   # + full address
+```
+
+2026/27 fixture groups:
+
+| Group | Division | Workbook name | Fixtures published? |
+|---|---|---|---|
+| `672187342` | National League Premier | EKA | **yes** |
+| `983396586` | London Regional League | LKA 1 | not yet |
+| `561266942` | London Korfball League 2 | LKA 2 | not yet |
+| `85011835` | London Korfball League 3 (South) | LKA 3S | not yet |
+
+Group IDs come from the website URL `fg/{fixtureTypeID}_{group}.html`; the site
+itself 403s a plain fetch, so read them from a browser. They change each season.
+
+**Precedence.** For National League, LeagueRepublic outranks both the LKA
+workbook and Heja — it is the EKA's own system, and the workbook openly defers
+to it ("no LKA hall booking"). For LKA divisions the workbook is still the only
+source, because those groups have teams registered but no fixtures yet. Recheck
+after each new draft; once they publish, LeagueRepublic should win there too.
+
+`fixtureDateStatusID` 2, or a time of `00:00`, means the throw-off is genuinely
+unconfirmed — not a default to be published as fact.
+
+**Do not backfill away venues from history.** Last season's data and Heja's own
+records both said Cambridge Tigers play at Cambridge University Sports Centre
+and Tornadoes at Medway Park. For 2026/27 they are at Bedford School and
+Rochester Grammar School — different towns. EKA clubs move; only the current
+season's group is trustworthy.
+
+Related work: `~/repos/fantasy-korf` (github.com/rmoorhouse/fantasy-korf) already
+consumes this API and documents it in `LEAGUEREPUBLIC_API.md`, including the
+statistics endpoints. It also holds an LKA match form.
+
 ## Do not import KorfKal descriptions into Heja
 
 KorfKal writes a block into each event's `.ics` description:
