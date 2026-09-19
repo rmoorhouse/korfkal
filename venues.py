@@ -24,11 +24,14 @@ VENUES = {
     # Bromley's home venue - all 33 Bromley home fixtures
     # ------------------------------------------------------------------
     "Langley Park": {
-        "full_name": "Langley Park School for Boys",   # CONFIRM
-        "address": None,        # e.g. "Hawksbrook Lane, Beckenham"
-        "postcode": None,       # e.g. "BR3 3BE"
+        "full_name": "Langley Park School for Boys",
+        "address": "Beckenham",          # street + postcode still wanted
+        "postcode": None,
+        "lat": 51.3889901,
+        "lng": -0.0190759,
         "host": "Bromley",
-        "notes": "Bromley home venue. Hall available from 13:00.",
+        "notes": "Bromley home venue. Name and coordinates confirmed from the "
+                 "club's Heja calendar feed. Hall opens 12:50 in draft v0.03.",
     },
 
     # ------------------------------------------------------------------
