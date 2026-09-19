@@ -84,11 +84,13 @@ VENUES = {
         "notes": "Address confirmed from the club's Heja location history (used 19 times).",
     },
     "St Pauls Way": {
-        "full_name": None,
-        "address": None,
+        "full_name": "St Paul's Way Trust School",
+        "address": None,     # name only - Heja gave no address for this one
         "postcode": None,
         "host": "East London",
-        "notes": "",
+        "notes": "Full name confirmed from the club's Heja location history, "
+                 "but no address: still unconfirmed, so it publishes as a "
+                 "name search rather than a pinned location.",
     },
     "Harris Invictus": {
         "full_name": "Harris Invictus Academy Croydon",
