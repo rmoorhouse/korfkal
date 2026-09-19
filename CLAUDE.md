@@ -29,8 +29,32 @@ damaging mistake available in this codebase.
 clubs' hall availability and contact preferences. Analysis outputs that quote
 that data are kept in the parent directory, outside this repo, deliberately.
 
-Source workbook currently lives at
-`~/Downloads/LKA Fixtures 26-27 Draft v0.01.xlsx`.
+## Source of truth
+
+**Heja is now the source**, not the LKA workbook:
+
+```
+node ~/heja-cli/heja.mjs export --window all --ics -o /tmp/heja-src.ics
+python3 generate_ics.py /tmp/heja-src.ics --from 2026-09-01 \
+    --base-url https://rmoorhouse.github.io/korfkal
+```
+
+Heja is a superset once reconciled against the LKA draft: it carries
+pre-season and friendly fixtures the workbook never contains, plus real venue
+addresses. The workbook remains the authority for *league* fixtures, so the
+order is: LKA draft → `heja reconcile` → Heja → KorfKal.
+
+The generator still reads the workbook directly (pass the `.xlsx` instead) —
+useful for diffing a new draft before pushing it into Heja. Current copy:
+`~/KorfKal/LKA Fixtures 26-27 Draft v0.03.xlsx` (filename says v0.03, the
+sheet's own header says v0.06).
+
+`--from` matters with Heja input: an export spans years of history.
+
+Only events titled "A v B" naming a real `<Club> <number>` team are taken, so
+training, trials and socials stay off the public site. Team matching is exact:
+a loose prefix test let historical titles like "Bromley 3 friendly" and
+"Bromley1" become their own bogus per-team calendars.
 
 ## Domain rules
 

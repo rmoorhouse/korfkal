@@ -207,3 +207,26 @@ def unresolved(venues_seen):
     """Venue names in use that have no confirmed address, for run-end reporting."""
     return sorted({str(v) for v in venues_seen
                    if not str(v).startswith("Away") and not maps_url(v)})
+
+
+# Heja records venues under its own canonical names ("Langley Park School for
+# Boys, South Eden Park Road, ..."), so a feed sourced from Heja needs mapping
+# back to the keys used here before links and coordinates can be attached.
+def match_name(raw):
+    """Best-guess canonical venue key for a free-text venue string."""
+    if not raw:
+        return None
+    s = str(raw)
+    if s.startswith("Away"):
+        return s
+    tok = lambda x: "".join(ch for ch in str(x).lower() if ch.isalnum())
+    t = tok(s)
+    best, best_len = None, 0
+    for key, entry in VENUES.items():
+        for cand in (entry.get("full_name"), key):
+            c = tok(cand)
+            if not c or len(c) < 6:
+                continue
+            if (c in t or t.startswith(c[:12])) and len(c) > best_len:
+                best, best_len = key, len(c)
+    return best or s

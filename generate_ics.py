@@ -127,10 +127,99 @@ def load_fixtures(path, club):
     return sorted(fixtures, key=lambda f: (f["date"], f["throw_off"] or datetime.min.time()))
 
 
+FIXTURE_TITLE = re.compile(r"^(?P<home>.+?)\s+v(?:s\.?)?\s+(?P<away>.+?)$", re.I)
+NON_FIXTURE = re.compile(r"\((friendly|practice|training|social)\)\s*$", re.I)
+
+
+def _unfold(text):
+    out = []
+    for line in text.replace("\r\n", "\n").split("\n"):
+        if line[:1] in (" ", "\t") and out:
+            out[-1] += line[1:]
+        else:
+            out.append(line)
+    return out
+
+
+def load_from_heja(path, club):
+    """Read fixtures from a Heja .ics export (`heja export --window all --ics`).
+
+    Heja is the richer source once it has been reconciled: it carries pre-season
+    and friendly games the league workbook never contains, and real venue
+    addresses. Only events whose title reads "A v B" and names one of the club's
+    teams are taken - training, trials and socials are left out, which keeps
+    members' weekly training times off a public web page.
+
+    Team names are parsed back out of the title so that `uid_for` produces the
+    same UID as the workbook would. Changing that would replace every event in
+    every subscriber's calendar.
+    """
+    events, cur = [], None
+    for line in _unfold(Path(path).read_text(encoding="utf-8")):
+        if line == "BEGIN:VEVENT":
+            cur = {}
+        elif line == "END:VEVENT":
+            if cur:
+                events.append(cur)
+            cur = None
+        elif cur is not None and ":" in line:
+            k, v = line.split(":", 1)
+            cur[k.split(";")[0]] = v.replace("\\,", ",").replace("\\n", "\n")
+            if k.startswith("DTSTART"):
+                cur["_allday"] = "VALUE=DATE" in k
+
+    fixtures = []
+    for e in events:
+        start = e.get("DTSTART", "")
+        if not start:
+            continue
+        title = re.sub(r"\s*-\s*[^-]*$", "", e.get("SUMMARY", "")).strip() \
+            if e.get("SUMMARY", "").endswith(" - " + club + " KC") else e.get("SUMMARY", "").strip()
+        league = ""
+        m = re.search(r"\(([^)]*)\)\s*$", title)
+        if m:
+            league = m.group(1)
+        bare = re.sub(r"\s*\([^)]*\)\s*$", "", title).strip()
+        if NON_FIXTURE.search(title):
+            league = league or "Friendly"
+        sides = FIXTURE_TITLE.match(bare)
+        if not sides:
+            continue                      # training, trials, socials
+        home, away = sides.group("home").strip(), sides.group("away").strip()
+        if not re.match(rf"^{re.escape(club)}\s+\d+$", home) and \
+           not re.match(rf"^{re.escape(club)}\s+\d+$", away):
+            continue
+
+        if e.get("_allday"):
+            date = datetime.strptime(start[:8], "%Y%m%d")
+            throw = None
+        else:
+            utc = datetime.strptime(start, "%Y%m%dT%H%M%SZ").replace(tzinfo=UTC)
+            local = utc.astimezone(LOCAL)
+            date, throw = datetime(local.year, local.month, local.day), local.time()
+
+        venue = venue_book.match_name(e.get("LOCATION", "") or "TBC")
+        fixtures.append(dict(
+            matchweek="", date=date, league=league or "Fixture",
+            home_club=club if home.startswith(club) else home,
+            home_team=home,
+            away_club=club if away.startswith(club) else away,
+            away_team=away, venue=venue,
+            hall_start=None, hall_end=None, throw_off=throw,
+            notes=""))
+    return sorted(fixtures, key=lambda f: (f["date"], f["throw_off"] or datetime.min.time()))
+
+
 def teams_of(fixture, club):
-    """Which of the club's teams are involved (usually one)."""
+    """Which of the club's teams are involved (usually one).
+
+    Matches "<Club> <number>" exactly. A loose prefix test lets historical Heja
+    titles like "Bromley 3 friendly" or "Bromley1" through, and each one then
+    becomes its own bogus per-team calendar.
+    """
+    pat = re.compile(rf"^{re.escape(club)}\s+\d+$")
     return [t for t in (fixture["home_team"], fixture["away_team"])
-            if str(t).startswith(club)]
+            if pat.match(str(t).strip())]
 
 
 def uid_for(fixture):
@@ -504,17 +593,32 @@ calendar to make it visible.</p>
 def main():
     parser = argparse.ArgumentParser(description=__doc__,
                                      formatter_class=argparse.RawDescriptionHelpFormatter)
-    parser.add_argument("workbook")
+    parser.add_argument("source",
+                        help="LKA fixtures .xlsx, or a Heja .ics export "
+                             "(heja export --window all --ics)")
     parser.add_argument("--club", default="Bromley")
     parser.add_argument("--outdir", default="docs")
+    parser.add_argument("--from", dest="from_date", default="",
+                        help="ignore fixtures before this date (YYYY-MM-DD). "
+                             "A Heja export spans years of history; the league "
+                             "workbook is one season, so this is usually only "
+                             "needed with .ics input.")
     parser.add_argument("--base-url", default="",
                         help="published URL of the output dir, e.g. "
                              "https://user.github.io/bromley-fixtures")
     args = parser.parse_args()
 
-    fixtures = load_fixtures(args.workbook, args.club)
+    from_heja = str(args.source).lower().endswith(".ics")
+    fixtures = (load_from_heja(args.source, args.club) if from_heja
+                else load_fixtures(args.source, args.club))
+    if args.from_date:
+        floor = datetime.strptime(args.from_date, "%Y-%m-%d")
+        before = len(fixtures)
+        fixtures = [f for f in fixtures if f["date"] >= floor]
+        print(f"Ignoring {before - len(fixtures)} fixture(s) before {args.from_date}")
     if not fixtures:
         sys.exit(f"No fixtures found for club {args.club!r}")
+    print(f"Source: {'Heja export' if from_heja else 'LKA workbook'} — {args.source}")
 
     outdir = Path(args.outdir)
     outdir.mkdir(parents=True, exist_ok=True)
@@ -530,8 +634,14 @@ def main():
     calendars += [(slug(team), str(team), f"{team} Korfball", per_team[team], team)
                   for team in sorted(per_team)]
 
+    seen_stems = set()
     entries = []
     for stem, label, calname, items, team in calendars:
+        if stem in seen_stems:
+            sys.exit(f"Two calendars would both be written to {stem}.ics "
+                     f"({label}) - team names are ambiguous, refusing to "
+                     f"silently overwrite one with the other.")
+        seen_stems.add(stem)
         filename, page = f"{stem}.ics", f"{stem}.html"
         (outdir / filename).write_text(
             build_calendar(items, args.club, calname), encoding="utf-8")
