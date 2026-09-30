@@ -56,6 +56,19 @@ training, trials and socials stay off the public site. Team matching is exact:
 a loose prefix test let historical titles like "Bromley 3 friendly" and
 "Bromley1" become their own bogus per-team calendars.
 
+## Socials
+
+Socials have their own feed, `bromley-socials.ics`, built from the hand-kept
+`socials.csv` (`id,date,title,time,end,venue,notes`). They are announced on
+WhatsApp, not in Heja, so they do not come through the Heja pipeline, and they
+stay out of `bromley.ics` so fixture subscribers don't get nights out.
+
+- UIDs hash `SOCIAL_NAMESPACE` + `id` only. Retitle or retime freely, but
+  **never change an `id`** - it duplicates the event for every subscriber.
+- A blank `time` means 19:00-23:00, published `TENTATIVE` with "time and venue
+  to follow". Fill in `time` (and `end`, `venue`) once announced.
+- The repo is public: no personal details, and think before naming people.
+
 ## LeagueRepublic — the authoritative source for National League
 
 England Korfball runs its fixtures on LeagueRepublic. Public JSON, no auth:

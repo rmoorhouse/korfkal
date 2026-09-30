@@ -7,6 +7,7 @@ Usage:
 Produces, in --outdir:
     bromley.ics        every club fixture
     bromley-1.ics ...  one per team
+    bromley-socials.ics  club socials, from socials.csv (if present)
     index.html         subscribe links for phones
 
 Design notes
@@ -21,6 +22,7 @@ Design notes
 """
 
 import argparse
+import csv
 import hashlib
 import html
 import json
@@ -39,6 +41,9 @@ except ImportError:
     sys.exit("openpyxl required:  pip install openpyxl")
 
 UID_NAMESPACE = "korfkal-fixtures"
+SOCIAL_NAMESPACE = "korfkal-socials"   # same rule: never change once published
+SOCIAL_START = "19:00"    # socials are evenings; assumed until a time is given
+SOCIAL_HOURS = 4
 LOCAL = ZoneInfo("Europe/London")
 UTC = ZoneInfo("UTC")
 
@@ -327,6 +332,69 @@ def build_calendar(fixtures, club, name):
     return "\r\n".join(folded) + "\r\n"
 
 
+def load_socials(path):
+    """Club socials from a hand-kept CSV: id,date,title,time,end,venue,notes.
+
+    Socials are announced on WhatsApp, not in Heja or the LKA workbook, so
+    they live in their own file. The UID comes from `id`, not the title or
+    time, so renaming an event or confirming its time updates it in place.
+    """
+    rows = list(csv.DictReader(open(path, encoding="utf-8")))
+    ids = [r["id"] for r in rows]
+    dupes = {i for i in ids if ids.count(i) > 1}
+    if dupes:
+        sys.exit(f"{path}: duplicate id(s) {sorted(dupes)} would collide in calendars")
+    return sorted(rows, key=lambda r: r["date"])
+
+
+def build_social_event(social, stamp):
+    uid = hashlib.sha1(f"{SOCIAL_NAMESPACE}|{social['id']}".encode()).hexdigest()
+    day = datetime.strptime(social["date"], "%Y-%m-%d")
+    confirmed = bool(social["time"])
+    start = as_utc(day, datetime.strptime(social["time"] or SOCIAL_START, "%H:%M").time())
+    end = (as_utc(day, datetime.strptime(social["end"], "%H:%M").time()) if social["end"]
+           else start + timedelta(hours=SOCIAL_HOURS))
+    if end <= start:
+        end += timedelta(days=1)          # finishes after midnight
+
+    description = [social["notes"]] if social["notes"] else []
+    if not confirmed:
+        description.append("Evening - time and venue to follow.")
+    lines = ["BEGIN:VEVENT",
+             f"UID:{uid}@korfkal",
+             f"DTSTAMP:{stamp:%Y%m%dT%H%M%SZ}",
+             f"SUMMARY:{esc(social['title'])}",
+             f"DTSTART:{start:%Y%m%dT%H%M%SZ}",
+             f"DTEND:{end:%Y%m%dT%H%M%SZ}"]
+    if not confirmed:
+        lines.append("STATUS:TENTATIVE")
+    if social["venue"]:
+        lines.append(f"LOCATION:{esc(social['venue'])}")
+    if description:
+        lines.append(f"DESCRIPTION:{esc(chr(10).join(description))}")
+    return lines + ["END:VEVENT"]
+
+
+def build_social_calendar(socials, name):
+    stamp = datetime.now(tz=UTC)
+    lines = ["BEGIN:VCALENDAR",
+             "VERSION:2.0",
+             "PRODID:-//KorfKal//Socials//EN",
+             "CALSCALE:GREGORIAN",
+             "METHOD:PUBLISH",
+             f"X-WR-CALNAME:{esc(name)}",
+             "X-WR-TIMEZONE:Europe/London",
+             f"X-WR-CALDESC:{esc(f'{name} - 2026-27 season.')}"]
+    for social in socials:
+        lines += build_social_event(social, stamp)
+    lines.append("END:VCALENDAR")
+
+    folded = []
+    for line in lines:
+        folded.extend(fold(line))
+    return "\r\n".join(folded) + "\r\n"
+
+
 def slug(team):
     return re.sub(r"[^a-z0-9]+", "-", str(team).lower()).strip("-")
 
@@ -550,7 +618,17 @@ def next_fixture_data(club, fixtures, team):
     return out
 
 
-def build_index(club, entries, base_url):
+def subscribe_buttons(filename, base_url):
+    url = f"{base_url.rstrip('/')}/{filename}" if base_url else filename
+    webcal = re.sub(r"^https?://", "webcal://", url)
+    if not base_url:
+        return f'<a class="btn plain" href="{html.escape(filename)}">{html.escape(filename)}</a>'
+    return (f'<a class="btn" href="{html.escape(webcal)}">Add to phone</a> '
+            f'<a class="btn" href="https://calendar.google.com/calendar/r?cid='
+            f'{html.escape(webcal)}">Add to Google</a>')
+
+
+def build_index(club, entries, base_url, socials=None):
     rows = []
     for filename, label, count, page, data in entries:
         url = f"{base_url.rstrip('/')}/{filename}" if base_url else filename
@@ -570,6 +648,17 @@ def build_index(club, entries, base_url):
             f'<div class=count>{count} fixtures</div>'
             f'<div class=next data-fx=\'{html.escape(json.dumps(data), quote=False)}\'></div></td>'
             f'<td>{buttons}</td></tr>')
+
+    social_html = ""
+    if socials:
+        filename, count = socials
+        social_html = (
+            '<h2 class=kicker>Socials</h2>'
+            '<p class=sub>Club nights out, in their own calendar so they stay out '
+            'of your fixtures.</p>'
+            f'<table class=pick><tr><td><div class=team>{html.escape(club)} socials</div>'
+            f'<div class=count>{count} events</div></td>'
+            f'<td>{subscribe_buttons(filename, base_url)}</td></tr></table>')
 
     warning = "" if base_url else (
         "<p class=warn>No --base-url was given, so subscribe links are missing. "
@@ -592,6 +681,7 @@ def build_index(club, entries, base_url):
 updates itself whenever the fixtures change.</p>
 {warning}
 <table class=pick>{''.join(rows)}</table>
+{social_html}
 <p class=note><strong>Draft fixtures.</strong> Some are marked tentative and carry a
 note explaining what is under query. Away National League games show as all-day
 events until the EKA confirms throw-off times.</p>
@@ -627,6 +717,8 @@ def main():
                              "A Heja export spans years of history; the league "
                              "workbook is one season, so this is usually only "
                              "needed with .ics input.")
+    parser.add_argument("--socials", default="socials.csv",
+                        help="club socials CSV; skipped if the file is absent")
     parser.add_argument("--base-url", default="",
                         help="published URL of the output dir, e.g. "
                              "https://user.github.io/bromley-fixtures")
@@ -675,8 +767,17 @@ def main():
         entries.append((filename, label, len(items), page,
                         next_fixture_data(args.club, items, team)))
 
+    socials = None
+    if Path(args.socials).exists():
+        rows = load_socials(args.socials)
+        filename = f"{slug(args.club)}-socials.ics"
+        (outdir / filename).write_text(
+            build_social_calendar(rows, f"{args.club} Korfball — socials"), encoding="utf-8")
+        socials = (filename, len(rows))
+        print(f"Wrote {filename} ({len(rows)} socials)")
+
     (outdir / "index.html").write_text(
-        build_index(args.club, entries, args.base_url), encoding="utf-8")
+        build_index(args.club, entries, args.base_url, socials), encoding="utf-8")
 
     print(f"Wrote {len(entries)} calendars + pages to {outdir}/")
     for filename, label, count, page, _ in entries:

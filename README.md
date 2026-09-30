@@ -18,6 +18,7 @@ Pick your team, tap **Add to phone** (iPhone) or **Add to Google** (Android).
 | `bromley-3.ics` | Bromley 3 — LKA 2 (14) |
 | `bromley-4.ics` | Bromley 4 — LKA 3S (10) |
 | `bromley-5.ics` | Bromley 5 — LKA 3S (10) |
+| `bromley-socials.ics` | Club socials, from `socials.csv` |
 
 ## What's in an event
 
