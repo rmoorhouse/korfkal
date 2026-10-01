@@ -41,8 +41,9 @@ python3 generate_ics.py /tmp/heja-src.ics --from 2026-09-01 \
 
 Heja is a superset once reconciled against the LKA draft: it carries
 pre-season and friendly fixtures the workbook never contains, plus real venue
-addresses. The workbook remains the authority for *league* fixtures, so the
-order is: LKA draft → `heja reconcile` → Heja → KorfKal.
+addresses. LeagueRepublic is the authority for *league* fixtures (see below),
+so the order is: LeagueRepublic → Heja → KorfKal. The LKA draft is now
+background - useful for hall bookings, not for dates and times.
 
 The generator still reads the workbook directly (pass the `.xlsx` instead) —
 useful for diffing a new draft before pushing it into Heja. Current copy:
@@ -69,7 +70,7 @@ stay out of `bromley.ics` so fixture subscribers don't get nights out.
   to follow". Fill in `time` (and `end`, `venue`) once announced.
 - The repo is public: no personal details, and think before naming people.
 
-## LeagueRepublic — the authoritative source for National League
+## LeagueRepublic — the authoritative source for league fixtures
 
 England Korfball runs its fixtures on LeagueRepublic. Public JSON, no auth:
 
@@ -84,18 +85,25 @@ https://api.leaguerepublic.com/json/getFullFixtureDetails/{fixtureID}.json   # +
 | Group | Division | Workbook name | Fixtures published? |
 |---|---|---|---|
 | `672187342` | National League Premier | EKA | **yes** |
-| `983396586` | London Regional League | LKA 1 | not yet |
-| `561266942` | London Korfball League 2 | LKA 2 | not yet |
-| `85011835` | London Korfball League 3 (South) | LKA 3S | not yet |
+| `983396586` | London Regional League | LKA 1 | **yes** (by 1 Oct 2026) |
+| `561266942` | London Korfball League 2 | LKA 2 | **yes** (by 1 Oct 2026) |
+| `85011835` | London Korfball League 3 (South) | LKA 3S | **yes** (by 1 Oct 2026) |
 
 Group IDs come from the website URL `fg/{fixtureTypeID}_{group}.html`; the site
 itself 403s a plain fetch, so read them from a browser. They change each season.
 
-**Precedence.** For National League, LeagueRepublic outranks both the LKA
-workbook and Heja — it is the EKA's own system, and the workbook openly defers
-to it ("no LKA hall booking"). For LKA divisions the workbook is still the only
-source, because those groups have teams registered but no fixtures yet. Recheck
-after each new draft; once they publish, LeagueRepublic should win there too.
+**Precedence.** LeagueRepublic outranks both the LKA workbook and Heja for
+every Bromley team. For National League it is the EKA's own system, and the
+workbook openly defers to it ("no LKA hall booking"). The LKA divisions
+published there by 1 Oct 2026; on that date all 48 Bromley 2-5 fixtures
+matched Heja on date, time and home/away.
+
+`heja reconcile` against the workbook still prints "fix" commands for every
+National League game where the draft has a placeholder. **Do not run them** -
+they would overwrite LeagueRepublic's times with the draft's guesses.
+
+Names differ slightly: LeagueRepublic's "Harrow Vultrix 1" is Heja's
+"Harrow 1". Match on date and the Bromley side, not exact opponent names.
 
 `fixtureDateStatusID` 2, or a time of `00:00`, means the throw-off is genuinely
 unconfirmed — not a default to be published as fact.
