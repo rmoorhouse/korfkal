@@ -347,7 +347,7 @@ def load_socials(path):
     return sorted(rows, key=lambda r: r["date"])
 
 
-def build_social_event(social, stamp):
+def build_social_event(social, club, stamp):
     uid = hashlib.sha1(f"{SOCIAL_NAMESPACE}|{social['id']}".encode()).hexdigest()
     day = datetime.strptime(social["date"], "%Y-%m-%d")
     confirmed = bool(social["time"])
@@ -363,7 +363,7 @@ def build_social_event(social, stamp):
     lines = ["BEGIN:VEVENT",
              f"UID:{uid}@korfkal",
              f"DTSTAMP:{stamp:%Y%m%dT%H%M%SZ}",
-             f"SUMMARY:{esc(social['title'])}",
+             f"SUMMARY:{esc(f'{club} Social: {social['title']}')}",
              f"DTSTART:{start:%Y%m%dT%H%M%SZ}",
              f"DTEND:{end:%Y%m%dT%H%M%SZ}"]
     if not confirmed:
@@ -375,7 +375,7 @@ def build_social_event(social, stamp):
     return lines + ["END:VEVENT"]
 
 
-def build_social_calendar(socials, name):
+def build_social_calendar(socials, club, name):
     stamp = datetime.now(tz=UTC)
     lines = ["BEGIN:VCALENDAR",
              "VERSION:2.0",
@@ -386,7 +386,7 @@ def build_social_calendar(socials, name):
              "X-WR-TIMEZONE:Europe/London",
              f"X-WR-CALDESC:{esc(f'{name} - 2026-27 season.')}"]
     for social in socials:
-        lines += build_social_event(social, stamp)
+        lines += build_social_event(social, club, stamp)
     lines.append("END:VCALENDAR")
 
     folded = []
@@ -772,7 +772,7 @@ def main():
         rows = load_socials(args.socials)
         filename = f"{slug(args.club)}-socials.ics"
         (outdir / filename).write_text(
-            build_social_calendar(rows, f"{args.club} Korfball — socials"), encoding="utf-8")
+            build_social_calendar(rows, args.club, f"{args.club} Korfball — socials"), encoding="utf-8")
         socials = (filename, len(rows))
         print(f"Wrote {filename} ({len(rows)} socials)")
 
